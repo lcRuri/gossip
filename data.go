@@ -8,7 +8,7 @@ import (
 // Node 节点
 type Node struct {
 	Addr        string //ip地址
-	Port        string //端口
+	Port        int    //端口
 	Name        string //节点名称
 	PrivateData string //节点私有数据
 }
