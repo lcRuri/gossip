@@ -25,7 +25,7 @@ type NodeList struct {
 
 	SecretKey string //集群密钥，同一个集群持有相同的密钥
 
-	localNode Node //本地节点信息
+	LocalNode Node //本地节点信息
 
 	Protocol   string //集群连接使用的网络协议，UDP或TCP，默认UDP
 	ListenAddr string //本地UDP/TCP监听地址，用这个监听地址接收其他节点发来的心跳包（一般填0.0.0.0即可）
