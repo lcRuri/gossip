@@ -21,7 +21,7 @@ type NodeList struct {
 	Cycle   int64 //同步时间周期（每隔多少秒向其他节点发送一次列表同步信息）
 	Buffer  int   //UDP/TCP接收缓冲区大小（决定UDP/TCP监听服务可以异步处理多少个请求）
 	Size    int   //单个UDP/TCP心跳数据包的最大容量（单位：字节）
-	TimeOut int64 //单个节点的过期删除界限（多少秒后删除）
+	Timeout int64 //单个节点的过期删除界限（多少秒后删除）
 
 	SecretKey string //集群密钥，同一个集群持有相同的密钥
 
@@ -35,4 +35,23 @@ type NodeList struct {
 	IsPrint bool //是否打印列表同步信息到控制台
 
 	metadata atomic.Value //元数据，集群中各个节点的元数据内容一致，相当于集群的公共数据（可存储一些公共配置信息），可以通过广播更新各个节点的元数据内容
+}
+
+//元数据信息
+type metadata struct {
+	Data   []byte //元数据内容
+	Update int64  //元数据版本
+}
+
+type packet struct {
+	//节点信息
+	Node     Node            //心跳数据包里面得节点信息
+	Infected map[string]bool //已被传染的节点列表
+
+	//元数据信息
+	Metadata metadata //新的元数据信息，如果该数据包是元数据更新数据包（isUpdate=true），则用newData覆盖掉原先的集群元数据metadata
+	IsUpdate bool     //该数据包是否为元数据更新数据包（true：是，false：否）
+	IsSwap   uint8    //该数据包是否为元数据交换数据包（0：否，1：发起方将交换请求发送给接收方，2：接收方回应发送方，数据交换完成）
+
+	SecretKey string //集群密钥，如果不匹配则拒绝处理该数据包
 }
