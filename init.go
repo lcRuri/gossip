@@ -2,14 +2,15 @@ package gossip
 
 import (
 	"gossip/utils"
+	"strconv"
 	"time"
 )
 
 // New 初始化
-func (nodeList *NodeList) New(localNode Node) {
+func (nodeList *NodeList) New(LocalNode Node) {
 	//Addr 缺省值：0.0.0.0
-	if localNode.Addr == "" {
-		localNode.Addr = "0.0.0.0"
+	if LocalNode.Addr == "" {
+		LocalNode.Addr = "0.0.0.0"
 	}
 
 	//Protocol 缺省值：UDP
@@ -53,8 +54,8 @@ func (nodeList *NodeList) New(localNode Node) {
 	}
 
 	//初始化本地节点列表的基础数据
-	nodeList.nodes.Store(localNode, time.Now().Unix()) //将本地节点信息添加进节点集合
-	nodeList.LocalNode = localNode                     //初始化本地节点信息
+	nodeList.nodes.Store(LocalNode, time.Now().Unix()) //将本地节点信息添加进节点集合
+	nodeList.LocalNode = LocalNode                     //初始化本地节点信息
 	nodeList.status.Store(true)                        //初始化节点服务状态
 
 	//设置元数据信息
@@ -73,7 +74,7 @@ func (nodeList *NodeList) Join() {
 		return
 	}
 
-	//定时光广播本地节点信息
+	//定时广播本地节点信息
 	go task(nodeList)
 
 	//监听队列(UDP监听缓冲区)
@@ -127,4 +128,93 @@ func (nodeList *NodeList) Get() []Node {
 	})
 
 	return nodes
+}
+
+// Stop 停止广播心跳
+func (nodeList *NodeList) Stop() {
+	//如果该节点的本地节点列表还未初始化
+	if len(nodeList.LocalNode.Addr) == 0 {
+		nodeList.Println("[Error]:", "Please use the New() function first")
+		//直接返回
+		return
+	}
+
+	nodeList.Println("[Stop]:", nodeList.LocalNode)
+	nodeList.status.Store(false)
+}
+
+// Start 重新开始广播心
+func (nodeList *NodeList) Start() {
+	//如果该节点的本地节点列表还未初始化
+	if len(nodeList.LocalNode.Addr) == 0 {
+		nodeList.Println("[Error]:", "Please use the New() function first")
+		//直接返回
+		return
+	}
+
+	//如果当前心跳服务正常
+	if nodeList.status.Load().(bool) {
+		//返回
+		return
+	}
+	nodeList.Println("[Start]:", nodeList.LocalNode)
+	nodeList.status.Store(true)
+	//定时广播本地节点信息
+	go task(nodeList)
+}
+
+// Read 读取本地节点列表的元数据信息
+func (nodeList *NodeList) Read() []byte {
+
+	//如果该节点的本地节点列表还未初始化
+	if len(nodeList.LocalNode.Addr) == 0 {
+		nodeList.Println("[Error]:", "Please use the New() function first")
+		//直接返回
+		return nil
+	}
+
+	return nodeList.metadata.Load().(metadata).Data
+}
+
+// Publish 在集群中发布新的元数据信息
+func (nodeList *NodeList) Publish(newMetadata []byte) {
+	//如果该节点的本地节点列表还未初始化
+	if len(nodeList.LocalNode.Addr) == 0 {
+		nodeList.Println("[Error]:", "Please use the New() function first")
+		//直接返回
+		return
+	}
+
+	nodeList.Println("[Publish]:", nodeList.LocalNode, "/ [Metadata]:", newMetadata)
+
+	//将本地节点加入已传染的节点列表infected
+	var infected = make(map[string]bool)
+	infected[nodeList.LocalNode.Addr+":"+strconv.Itoa(nodeList.LocalNode.Port)] = true
+
+	//更新本地节点信息
+	nodeList.Set(nodeList.LocalNode)
+
+	//设置新的元数据信息
+	md := metadata{
+		Data:   newMetadata,           //元数据内容
+		Update: time.Now().UnixNano(), //元数据更新时间戳
+	}
+
+	//更新本地节点的元数据信息
+	nodeList.metadata.Store(md)
+
+	//设置心跳数据包
+	p := packet{
+		Node:     nodeList.LocalNode,
+		Infected: infected,
+
+		//将数据包设为元数据更新数据包
+		Metadata: md,
+		IsUpdate: true,
+
+		SecretKey: nodeList.SecretKey,
+	}
+
+	//在集群中广播数据包
+	broadcast(nodeList, p)
 }
