@@ -1,9 +1,9 @@
-package net
+package gnet
 
 import "gossip"
 
-// write 发送数据
-func write(nodeList *gossip.NodeList, addr string, port int, data []byte) {
+// Write  发送数据
+func Write(nodeList *gossip.NodeList, addr string, port int, data []byte) {
 	if nodeList.Protocol != "TCP" {
 		udpWrite(nodeList, addr, port, data)
 	} else {
@@ -11,8 +11,8 @@ func write(nodeList *gossip.NodeList, addr string, port int, data []byte) {
 	}
 }
 
-// listen 服务端监听
-func listen(nodeList *gossip.NodeList, mq chan []byte) {
+// Listen 服务端监听
+func Listen(nodeList *gossip.NodeList, mq chan []byte) {
 	if nodeList.Protocol != "TCP" {
 		udpListen(nodeList, mq)
 	} else {
