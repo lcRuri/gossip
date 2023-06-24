@@ -2,7 +2,6 @@ package gossip
 
 import (
 	"encoding/json"
-	"gossip/gnet"
 	"strconv"
 	"time"
 )
@@ -151,14 +150,14 @@ func broadcast(nodeList *NodeList, p packet) {
 			nodeList.Println("[Error]:", err)
 		}
 		//发送
-		gnet.Write(nodeList, v.Addr, v.Port, bs)
+		Write(nodeList, v.Addr, v.Port, bs)
 	}
 }
 
 //监听其他节点发来的同步信息
 func listener(nodeList *NodeList, mq chan []byte) {
 	//监听协程
-	gnet.Listen(nodeList, mq)
+	Listen(nodeList, mq)
 }
 
 //发起两节点数据交换请求
@@ -188,7 +187,7 @@ func swapRequest(nodeList *NodeList) {
 			continue
 		}
 		//发送请求
-		gnet.Write(nodeList, nodes[i].Addr, nodes[i].Port, bs)
+		Write(nodeList, nodes[i].Addr, nodes[i].Port, bs)
 
 		if nodeList.IsPrint {
 			nodeList.Println("[Swap Request]:", nodeList.LocalNode.Addr+":"+strconv.Itoa(nodeList.LocalNode.Port), "->", nodes[i].Addr+":"+strconv.Itoa(nodes[i].Port))
@@ -214,7 +213,7 @@ func swapResponse(nodeList *NodeList, node Node) {
 	}
 
 	//回应发起节点
-	gnet.Write(nodeList, node.Addr, node.Port, bs)
+	Write(nodeList, node.Addr, node.Port, bs)
 
 	if nodeList.IsPrint {
 		nodeList.Println("[Swap Response]:", node.Addr+":"+strconv.Itoa(node.Port), "<-", nodeList.LocalNode.Addr+":"+strconv.Itoa(nodeList.LocalNode.Port))

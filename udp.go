@@ -1,12 +1,11 @@
-package gnet
+package gossip
 
 import (
 	"fmt"
-	"gossip"
 	"net"
 )
 
-func udpWrite(nodeList *gossip.NodeList, addr string, port int, data []byte) {
+func udpWrite(nodeList *NodeList, addr string, port int, data []byte) {
 	socket, err := net.DialUDP("udp", nil, &net.UDPAddr{
 		IP:   net.ParseIP(addr),
 		Port: port,
@@ -30,7 +29,7 @@ func udpWrite(nodeList *gossip.NodeList, addr string, port int, data []byte) {
 	}(socket)
 }
 
-func udpListen(nodeList *gossip.NodeList, mq chan []byte) {
+func udpListen(nodeList *NodeList, mq chan []byte) {
 	udpAddr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:%d", nodeList.ListenAddr, nodeList.LocalNode.Port))
 	if err != nil {
 		nodeList.Println("[Error]:", err)

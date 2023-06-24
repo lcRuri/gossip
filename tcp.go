@@ -1,12 +1,11 @@
-package gnet
+package gossip
 
 import (
 	"fmt"
-	"gossip"
 	"net"
 )
 
-func tcpWrite(nodeList *gossip.NodeList, addr string, port int, data []byte) {
+func tcpWrite(nodeList *NodeList, addr string, port int, data []byte) {
 
 	tcpAddr := fmt.Sprintf("%s:%v", addr, port)
 
@@ -40,7 +39,7 @@ func tcpWrite(nodeList *gossip.NodeList, addr string, port int, data []byte) {
 
 }
 
-func tcpListen(nodeList *gossip.NodeList, mq chan []byte) {
+func tcpListen(nodeList *NodeList, mq chan []byte) {
 	//节点列表监听的地址和本地节点的端口
 	server, err := net.Listen("tcp", fmt.Sprintf("%s:%v", nodeList.ListenAddr, nodeList.LocalNode.Port))
 	if err != nil {
