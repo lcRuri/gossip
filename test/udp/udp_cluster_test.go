@@ -37,9 +37,10 @@ var protocol string
 func nodeA() {
 	//配置节点A的本地节点列表nodeList参数
 	nodeList := gossip.NodeList{
-		Protocol:  protocol,
-		SecretKey: "test_key",
-		IsPrint:   true,
+		Protocol:   protocol,
+		SecretKey:  "test_key",
+		IsPrint:    true,
+		ListenAddr: "0.0.0.0",
 	}
 
 	//创建节点A及其本地节点列表
@@ -63,9 +64,10 @@ func nodeA() {
 func nodeB() {
 	//配置节点B的本地节点列表nodeList参数
 	nodeList := gossip.NodeList{
-		Protocol:  protocol,
-		SecretKey: "test_key",
-		IsPrint:   true,
+		Protocol:   protocol,
+		SecretKey:  "test_key",
+		IsPrint:    true,
+		ListenAddr: "0.0.0.0",
 	}
 
 	//创建节点B及其本地节点列表
@@ -87,6 +89,10 @@ func nodeB() {
 	//调用Join后，节点B会自动与节点A进行数据同步
 	nodeList.Join()
 
+	nodeList.Publish([]byte("test metadata B"))
+
+	metadata := nodeList.Read()
+	fmt.Println("Metadata:", string(metadata)) //打印元数据信息
 	//延迟10秒
 	time.Sleep(10 * time.Second)
 
@@ -96,9 +102,10 @@ func nodeB() {
 func nodeC() {
 	//配置节点C的本地节点列表nodeList参数
 	nodeList := gossip.NodeList{
-		Protocol:  protocol,
-		SecretKey: "test_key",
-		IsPrint:   true,
+		Protocol:   protocol,
+		SecretKey:  "test_key",
+		IsPrint:    true,
+		ListenAddr: "0.0.0.0",
 	}
 
 	//创建节点C及其本地节点列表
@@ -157,15 +164,20 @@ func nodeC() {
 
 	//重启节点C的心跳广播服务（节点C重新上线）
 	nodeList.Start()
+
+	//读取本地元数据信息
+	metadata = nodeList.Read()
+	fmt.Println("Metadata:", string(metadata)) //打印元数据信息
 }
 
 //运行节点D
 func nodeD() {
 	//配置节点D的本地节点列表nodeList参数
 	nodeList := gossip.NodeList{
-		Protocol:  protocol,
-		SecretKey: "test_key",
-		IsPrint:   true,
+		Protocol:   protocol,
+		SecretKey:  "test_key",
+		IsPrint:    true,
+		ListenAddr: "0.0.0.0",
 	}
 
 	//创建节点D及其本地节点列表
@@ -191,5 +203,7 @@ func nodeD() {
 
 	//读取本地元数据信息
 	metadata := nodeList.Read()
+
+	fmt.Println("Metadata Byte:", metadata)
 	fmt.Println("Metadata:", string(metadata)) //打印元数据信息
 }
