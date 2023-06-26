@@ -2,6 +2,7 @@ package gossip
 
 import (
 	"encoding/json"
+	"log"
 	"strconv"
 	"time"
 )
@@ -10,7 +11,9 @@ import (
 func task(nodeList *NodeList) {
 	for {
 		//停止同步
-		if nodeList.status.Load().(bool) {
+		//一开始少了！
+		if !nodeList.status.Load().(bool) {
+			//fmt.Println("停止同步")
 			break
 		}
 
@@ -29,13 +32,15 @@ func task(nodeList *NodeList) {
 		}
 
 		//广播心跳数据包
+		//fmt.Println("------broadcast------")
 		broadcast(nodeList, p)
 
 		//向集群中某个节点发起数据同步
+		//fmt.Println("------swapRequest------")
 		swapRequest(nodeList)
 
 		if nodeList.IsPrint {
-			nodeList.Println("[Listen]:", nodeList.ListenAddr+":"+strconv.Itoa(nodeList.LocalNode.Port), "/ [Node list]:", nodeList.Get())
+			//nodeList.Println("[Listen]:", nodeList.ListenAddr+":"+strconv.Itoa(nodeList.LocalNode.Port), "/ [Node list]:", nodeList.Get())
 		}
 
 		//间隔时间
@@ -65,11 +70,15 @@ func consume(nodeList *NodeList, mq chan []byte) {
 
 		//如果该数据包是两节点间的元数据交换数据包
 		if p.IsSwap != 0 {
+			//.Printf("two node swap\n")
 			//如果数据包中的元数据版本要比本地存储的元数据版本新
 			//则进行更新
 			if p.Metadata.Update > nodeList.metadata.Load().(metadata).Update {
 				//更新本地节点中存储的元数据信息
+				log.Printf("[Updata]:%v update metadata", nodeList.LocalNode.Name)
 				nodeList.metadata.Store(p.Metadata)
+				md := nodeList.metadata.Load().(metadata)
+				log.Printf("[%v] metadata:%v\n", nodeList.LocalNode.Name, string(md.Data))
 				//跳过，不广播，不回应发起方
 				continue
 			}
@@ -96,8 +105,12 @@ func consume(nodeList *NodeList, mq chan []byte) {
 
 		//如果该数据包是元数据更新数据包，且版本更新
 		if p.IsUpdate && p.Metadata.Update > nodeList.metadata.Load().(metadata).Update {
+			//fmt.Printf("[%v] consume metadata \n", nodeList.LocalNode.Name)
 			//更新本地节点中存储的元数据信息
+			log.Printf("[Updata]:%v update metadata", nodeList.LocalNode.Name)
 			nodeList.metadata.Store(p.Metadata)
+			md := nodeList.metadata.Load().(metadata)
+			log.Printf("[%v] metadata:%v\n", nodeList.LocalNode.Name, string(md.Data))
 		}
 
 		//广播推送该节点信息
@@ -107,9 +120,10 @@ func consume(nodeList *NodeList, mq chan []byte) {
 
 //广播推送信息
 func broadcast(nodeList *NodeList, p packet) {
+
 	//取出所有未过期的节点
 	nodes := nodeList.Get()
-
+	//fmt.Printf("[%v] all active nodes:%v\n", nodeList.LocalNode.Name, nodes)
 	//本次广播的目标节点列表
 	var targetNodes []Node
 
@@ -143,12 +157,14 @@ func broadcast(nodeList *NodeList, p packet) {
 		i++
 	}
 
+	//fmt.Printf("[%v] all target nodes:%v\n", nodeList.LocalNode.Name, targetNodes)
 	//向这些未被传染的节点广播传染数据
 	for _, v := range targetNodes {
 		bs, err := json.Marshal(p)
 		if err != nil {
 			nodeList.Println("[Error]:", err)
 		}
+		//fmt.Printf("%v send to %v\n", nodeList.LocalNode.Name, v.Port)
 		//发送
 		Write(nodeList, v.Addr, v.Port, bs)
 	}
@@ -186,11 +202,15 @@ func swapRequest(nodeList *NodeList) {
 		if nodes[i].Addr == nodeList.LocalNode.Addr && nodes[i].Port == nodeList.LocalNode.Port {
 			continue
 		}
+
+		//fmt.Printf("[%v] Join the cluster\n", nodeList.LocalNode.Name)
+		//fmt.Printf("[%v] send request to [%v]", nodeList.LocalNode.Port, nodes[i].Port)
+
 		//发送请求
 		Write(nodeList, nodes[i].Addr, nodes[i].Port, bs)
 
 		if nodeList.IsPrint {
-			nodeList.Println("[Swap Request]:", nodeList.LocalNode.Addr+":"+strconv.Itoa(nodeList.LocalNode.Port), "->", nodes[i].Addr+":"+strconv.Itoa(nodes[i].Port))
+			//nodeList.Println("[Swap Request]:", nodeList.LocalNode.Addr+":"+strconv.Itoa(nodeList.LocalNode.Port), "->", nodes[i].Addr+":"+strconv.Itoa(nodes[i].Port))
 		}
 		break
 	}
