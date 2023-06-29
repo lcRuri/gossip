@@ -2,12 +2,12 @@ package tcp
 
 import (
 	"fmt"
-	"gossip"
+	"gossip/connect"
 	"testing"
 	"time"
 )
 
-//完整测试用例-在本地启动四个节点，构成一个Gossip集群（UDP）
+// 完整测试用例-在本地启动四个节点，构成一个Gossip集群（UDP）
 func TestUDPCluster(t *testing.T) {
 
 	fmt.Println("---- Start a gossip cluster (TCP) ----")
@@ -33,17 +33,17 @@ func TestUDPCluster(t *testing.T) {
 
 var protocol string
 
-//运行节点A（初始节点）
+// 运行节点A（初始节点）
 func nodeA() {
 	//配置节点A的本地节点列表nodeList参数
-	nodeList := gossip.NodeList{
+	nodeList := connect.NodeList{
 		Protocol:  protocol,
 		SecretKey: "test_key",
 		IsPrint:   true,
 	}
 
 	//创建节点A及其本地节点列表
-	nodeList.New(gossip.Node{
+	nodeList.New(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8000,
 		Name:        "A-server",
@@ -59,17 +59,17 @@ func nodeA() {
 	time.Sleep(3 * time.Second)
 }
 
-//运行节点B
+// 运行节点B
 func nodeB() {
 	//配置节点B的本地节点列表nodeList参数
-	nodeList := gossip.NodeList{
+	nodeList := connect.NodeList{
 		Protocol:  protocol,
 		SecretKey: "test_key",
 		IsPrint:   true,
 	}
 
 	//创建节点B及其本地节点列表
-	nodeList.New(gossip.Node{
+	nodeList.New(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8001,
 		Name:        "B-server",
@@ -77,7 +77,7 @@ func nodeB() {
 	})
 
 	//将初始节点A的信息加入到B节点的本地节点列表当中
-	nodeList.Set(gossip.Node{
+	nodeList.Set(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8000,
 		Name:        "A-server",
@@ -92,31 +92,31 @@ func nodeB() {
 
 }
 
-//运行节点C
+// 运行节点C
 func nodeC() {
 	//配置节点C的本地节点列表nodeList参数
-	nodeList := gossip.NodeList{
+	nodeList := connect.NodeList{
 		Protocol:  protocol,
 		SecretKey: "test_key",
 		IsPrint:   true,
 	}
 
 	//创建节点C及其本地节点列表
-	nodeList.New(gossip.Node{
+	nodeList.New(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8002,
 		Name:        "C-server",
 		PrivateData: "test-data",
 	})
 
-	nodeList.Set(gossip.Node{
+	nodeList.Set(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8000,
 		Name:        "A-server",
 		PrivateData: "test-data",
 	})
 
-	nodeList.Set(gossip.Node{
+	nodeList.Set(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8001,
 		Name:        "B-server",
@@ -148,7 +148,7 @@ func nodeC() {
 
 	//因为之前节点C下线，C的本地节点列表无法接收到各节点的心跳数据包，列表被清空
 	//所以要先往C的本地节点列表中添加一些集群节点，再调用Start()重启节点D的同步工作
-	nodeList.Set(gossip.Node{
+	nodeList.Set(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8001,
 		Name:        "B-server",
@@ -159,24 +159,24 @@ func nodeC() {
 	nodeList.Start()
 }
 
-//运行节点D
+// 运行节点D
 func nodeD() {
 	//配置节点D的本地节点列表nodeList参数
-	nodeList := gossip.NodeList{
+	nodeList := connect.NodeList{
 		Protocol:  protocol,
 		SecretKey: "test_key",
 		IsPrint:   true,
 	}
 
 	//创建节点D及其本地节点列表
-	nodeList.New(gossip.Node{
+	nodeList.New(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8003,
 		Name:        "D-server",
 		PrivateData: "test-data",
 	})
 
-	nodeList.Set(gossip.Node{
+	nodeList.Set(connect.Node{
 		Addr:        "0.0.0.0",
 		Port:        8000,
 		Name:        "A-server",

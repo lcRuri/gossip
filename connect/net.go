@@ -1,4 +1,4 @@
-package gossip
+package connect
 
 // Write  发送数据
 func Write(nodeList *NodeList, addr string, port int, data []byte) {

@@ -1,4 +1,4 @@
-package gossip
+package connect
 
 import (
 	"encoding/json"
@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-//定时进行心跳广播
+// 定时进行心跳广播
 func task(nodeList *NodeList) {
 	for {
 		//停止同步
 		//一开始少了！
-		if !nodeList.status.Load().(bool) {
+		if !nodeList.Status.Load().(bool) {
 			//fmt.Println("停止同步")
 			break
 		}
@@ -48,7 +48,7 @@ func task(nodeList *NodeList) {
 	}
 }
 
-//消费信息
+// 消费信息
 func consume(nodeList *NodeList, mq chan []byte) {
 	for {
 		//从监听队列中取出信息
@@ -73,18 +73,18 @@ func consume(nodeList *NodeList, mq chan []byte) {
 			//.Printf("two node swap\n")
 			//如果数据包中的元数据版本要比本地存储的元数据版本新
 			//则进行更新
-			if p.Metadata.Update > nodeList.metadata.Load().(metadata).Update {
+			if p.Metadata.Update > nodeList.Metadata.Load().(metadata).Update {
 				//更新本地节点中存储的元数据信息
 				log.Printf("[Updata]:%v update metadata", nodeList.LocalNode.Name)
-				nodeList.metadata.Store(p.Metadata)
-				md := nodeList.metadata.Load().(metadata)
+				nodeList.Metadata.Store(p.Metadata)
+				md := nodeList.Metadata.Load().(metadata)
 				log.Printf("[%v] metadata:%v\n", nodeList.LocalNode.Name, string(md.Data))
 				//跳过，不广播，不回应发起方
 				continue
 			}
 
 			//如果数据包中的元数据版本要比本地存储的元数据版本旧，说明发起方的元数据版本较旧，发起方需要更新
-			if p.Metadata.Update < nodeList.metadata.Load().(metadata).Update {
+			if p.Metadata.Update < nodeList.Metadata.Load().(metadata).Update {
 				//如果发起方发出的数据交换请求
 				if p.IsSwap == 1 {
 					//回应发起方，向发起方发送最新的元数据信息，完成交换流程
@@ -104,12 +104,12 @@ func consume(nodeList *NodeList, mq chan []byte) {
 		nodeList.Set(node)
 
 		//如果该数据包是元数据更新数据包，且版本更新
-		if p.IsUpdate && p.Metadata.Update > nodeList.metadata.Load().(metadata).Update {
+		if p.IsUpdate && p.Metadata.Update > nodeList.Metadata.Load().(metadata).Update {
 			//fmt.Printf("[%v] consume metadata \n", nodeList.LocalNode.Name)
 			//更新本地节点中存储的元数据信息
 			log.Printf("[Updata]:%v update metadata", nodeList.LocalNode.Name)
-			nodeList.metadata.Store(p.Metadata)
-			md := nodeList.metadata.Load().(metadata)
+			nodeList.Metadata.Store(p.Metadata)
+			md := nodeList.Metadata.Load().(metadata)
 			log.Printf("[%v] metadata:%v\n", nodeList.LocalNode.Name, string(md.Data))
 		}
 
@@ -118,7 +118,7 @@ func consume(nodeList *NodeList, mq chan []byte) {
 	}
 }
 
-//广播推送信息
+// 广播推送信息
 func broadcast(nodeList *NodeList, p packet) {
 
 	//取出所有未过期的节点
@@ -170,13 +170,13 @@ func broadcast(nodeList *NodeList, p packet) {
 	}
 }
 
-//监听其他节点发来的同步信息
+// 监听其他节点发来的同步信息
 func listener(nodeList *NodeList, mq chan []byte) {
 	//监听协程
 	Listen(nodeList, mq)
 }
 
-//发起两节点数据交换请求
+// 发起两节点数据交换请求
 func swapRequest(nodeList *NodeList) {
 	//设置为数据交换数据包
 	p := packet{
@@ -184,7 +184,7 @@ func swapRequest(nodeList *NodeList) {
 		Node:      nodeList.LocalNode,
 		Infected:  make(map[string]bool),
 		IsSwap:    1,
-		Metadata:  nodeList.metadata.Load().(metadata),
+		Metadata:  nodeList.Metadata.Load().(metadata),
 		SecretKey: nodeList.SecretKey,
 	}
 
@@ -216,14 +216,14 @@ func swapRequest(nodeList *NodeList) {
 	}
 }
 
-//接收数据交换请求并回应发送方，完成交换工作
+// 接收数据交换请求并回应发送方，完成交换工作
 func swapResponse(nodeList *NodeList, node Node) {
 	//设置为数据交换数据包
 	p := packet{
 		Node:      nodeList.LocalNode,
 		Infected:  make(map[string]bool),
 		IsSwap:    2,
-		Metadata:  nodeList.metadata.Load().(metadata),
+		Metadata:  nodeList.Metadata.Load().(metadata),
 		SecretKey: nodeList.SecretKey,
 	}
 

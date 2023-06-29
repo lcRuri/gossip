@@ -1,4 +1,4 @@
-package gossip
+package connect
 
 import (
 	"gossip/utils"
@@ -54,16 +54,16 @@ func (nodeList *NodeList) New(LocalNode Node) {
 	}
 
 	//初始化本地节点列表的基础数据
-	nodeList.nodes.Store(LocalNode, time.Now().Unix()) //将本地节点信息添加进节点集合
+	nodeList.Nodes.Store(LocalNode, time.Now().Unix()) //将本地节点信息添加进节点集合
 	nodeList.LocalNode = LocalNode                     //初始化本地节点信息
-	nodeList.status.Store(true)                        //初始化节点服务状态
+	nodeList.Status.Store(true)                        //初始化节点服务状态
 
 	//设置元数据信息
 	md := metadata{
 		Data:   []byte(""), //元数据内容
 		Update: 0,          //元数据更新时间戳
 	}
-	nodeList.metadata.Store(md) //初始化元数据信息
+	nodeList.Metadata.Store(md) //初始化元数据信息
 }
 
 // Join 加入集群
@@ -89,7 +89,7 @@ func (nodeList *NodeList) Join() {
 	nodeList.Println("[Join]:", nodeList.LocalNode)
 }
 
-//Set 向本地节点列表加入其他节点
+// Set 向本地节点列表加入其他节点
 func (nodeList *NodeList) Set(node Node) {
 	//先进行校验
 	if len(nodeList.LocalNode.Addr) == 0 {
@@ -103,7 +103,7 @@ func (nodeList *NodeList) Set(node Node) {
 		node.Addr = "0.0.0.0"
 	}
 
-	nodeList.nodes.Store(node, time.Now().Unix())
+	nodeList.Nodes.Store(node, time.Now().Unix())
 }
 
 // Get 获取本地节点列表
@@ -115,19 +115,19 @@ func (nodeList *NodeList) Get() []Node {
 		return nil
 	}
 
-	var nodes []Node
+	var Nodes []Node
 	// 遍历所有sync.Map中的键值对
-	nodeList.nodes.Range(func(k, v any) bool {
+	nodeList.Nodes.Range(func(k, v any) bool {
 		//如果该节点超过一段数据没有更新
 		if v.(int64)+nodeList.Timeout < time.Now().Unix() {
-			nodeList.nodes.Delete(k)
+			nodeList.Nodes.Delete(k)
 		} else {
-			nodes = append(nodes, k.(Node))
+			Nodes = append(Nodes, k.(Node))
 		}
 		return true
 	})
 
-	return nodes
+	return Nodes
 }
 
 // Stop 停止广播心跳
@@ -140,7 +140,7 @@ func (nodeList *NodeList) Stop() {
 	}
 
 	nodeList.Println("[Stop]:", nodeList.LocalNode)
-	nodeList.status.Store(false)
+	nodeList.Status.Store(false)
 }
 
 // Start 重新开始广播心
@@ -153,12 +153,12 @@ func (nodeList *NodeList) Start() {
 	}
 
 	//如果当前心跳服务正常
-	if nodeList.status.Load().(bool) {
+	if nodeList.Status.Load().(bool) {
 		//返回
 		return
 	}
 	nodeList.Println("[Start]:", nodeList.LocalNode)
-	nodeList.status.Store(true)
+	nodeList.Status.Store(true)
 	//定时广播本地节点信息
 	go task(nodeList)
 }
@@ -173,7 +173,7 @@ func (nodeList *NodeList) Read() []byte {
 		return nil
 	}
 
-	return nodeList.metadata.Load().(metadata).Data
+	return nodeList.Metadata.Load().(metadata).Data
 }
 
 // Publish 在集群中发布新的元数据信息
@@ -185,7 +185,7 @@ func (nodeList *NodeList) Publish(newMetadata []byte) {
 		return
 	}
 
-	nodeList.Println("[Publish]:", nodeList.LocalNode, "/ [Metadata]:", newMetadata)
+	nodeList.Println("[Publish]:", nodeList.LocalNode, "/ [Metadata]:", string(newMetadata))
 
 	//将本地节点加入已传染的节点列表infected
 	var infected = make(map[string]bool)
@@ -201,7 +201,7 @@ func (nodeList *NodeList) Publish(newMetadata []byte) {
 	}
 
 	//更新本地节点的元数据信息
-	nodeList.metadata.Store(md)
+	nodeList.Metadata.Store(md)
 
 	//设置心跳数据包
 	p := packet{
