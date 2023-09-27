@@ -51,7 +51,5 @@ func main() {
 
 	nodeList.Join()
 
-	nodeList.Publish([]byte("test metadata conn"))
-
 	select {}
 }
